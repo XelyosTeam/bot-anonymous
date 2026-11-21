@@ -32,6 +32,9 @@ jobs:
             - run: npm run lint
             - run: npm test
             - run: npm audit --omit=dev --audit-level=high
+            - name: Check tag matches package.json version
+              if: github.ref_type == 'tag'
+              run: test "v$(jq -r .version package.json)" = "$GITHUB_REF_NAME" || { echo "::error::Tag $GITHUB_REF_NAME does not match package.json version"; exit 1; }
 
     docker:
         name: Build & push image
@@ -73,6 +76,40 @@ jobs:
               env:
                   DIGEST: ${{ steps.build.outputs.digest }}
               run: echo "image=$(echo "ghcr.io/${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')@${DIGEST}" >> "$GITHUB_OUTPUT"
+
+    # On a v* tag: create the GitHub release, with the notes taken from the matching CHANGELOG.md section
+    release:
+        name: GitHub release
+        needs: docker
+        if: github.ref_type == 'tag'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/checkout@v4
+            - name: Build release notes
+              run: |
+                  VERSION="${GITHUB_REF_NAME#v}"
+                  IMAGE="ghcr.io/$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+                  awk -v v="$VERSION" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## |^\[/ {f=0} f' CHANGELOG.md > notes.md
+                  if [ ! -s notes.md ]; then
+                      echo "::error::No '## [$VERSION]' section found in CHANGELOG.md"
+                      exit 1
+                  fi
+                  cat >> notes.md <<EOF
+
+                  ### 🐳 Docker image
+
+                  \`\`\`bash
+                  docker pull $IMAGE:$VERSION
+                  \`\`\`
+
+                  See the [installation guide](https://github.com/$GITHUB_REPOSITORY#readme) to get started.
+                  EOF
+            - name: Create release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag
 
     # Optional SSH deployment: only runs when the DEPLOY_HOST variable is set
     # (Settings > Secrets and variables > Actions > Variables: DEPLOY_HOST, DEPLOY_USER, DEPLOY_PATH, DEPLOY_PORT

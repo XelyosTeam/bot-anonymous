@@ -76,8 +76,12 @@ docker compose logs -f           # or: make logs
 
 The data (SQLite database and log files) is stored in the `bot_data` Docker volume.
 
-You can use an image already built by the CI instead of building on the server. Set `BOT_IMAGE` in `.env` (e.g.
-`ghcr.io/<owner>/<repo>:latest`), then run:
+You can use the published image instead of building on the server. Set `BOT_IMAGE` in `.env` (use `:latest` or a
+fixed version such as `:10.0.0`), then run the commands below:
+
+```env
+BOT_IMAGE=ghcr.io/xelyosteam/bot-anonymous:latest
+```
 
 ```bash
 docker compose pull && docker compose up -d --no-build   # or: make pull
@@ -161,3 +165,7 @@ npm run dev      # auto-reload
 npm test         # tests (node:test)
 npm run lint     # Prettier check (npm run format to fix)
 ```
+
+## License
+
+Released under the [MIT License](LICENSE).

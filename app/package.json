@@ -17,7 +17,7 @@
         "commands:purge": "node extra/commands-purge.js"
     },
     "author": "Aros <aros@xelyos.fr> - Team Xelyos (https://xelyos.fr/)",
-    "license": "ISC",
+    "license": "MIT",
     "dependencies": {
         "discord.js": "14.28.1"
     },
