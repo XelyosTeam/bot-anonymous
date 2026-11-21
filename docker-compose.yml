@@ -1,0 +1,25 @@
+# Start: docker compose up -d --build
+# To use an image published by the CI instead of building locally,
+# set BOT_IMAGE in the .env then run: docker compose pull && docker compose up -d --no-build
+services:
+    bot:
+        image: ${BOT_IMAGE:-bot-anonymous:local}
+        build: .
+        container_name: bot-anonymous
+        restart: unless-stopped
+        env_file: .env
+        environment:
+            # Paths inside the container: do not change (data is stored in the volume)
+            DATA_DIR: /data
+            LOG_DIR: /data/logs
+            HEALTH_PORT: 3000
+        volumes:
+            - bot_data:/data
+        logging:
+            driver: json-file
+            options:
+                max-size: 10m
+                max-file: '3'
+
+volumes:
+    bot_data:
